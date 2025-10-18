@@ -14,7 +14,6 @@
 html,body{height:100%;margin:0;background:linear-gradient(180deg,#01020a,#05102a);color:#dff6ff;-webkit-font-smoothing:antialiased}
 .app{height:100dvh;display:flex;flex-direction:column;align-items:stretch}
 
-/* header */
 header.app-header{
   position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;padding:12px;
   background:linear-gradient(90deg, rgba(124,58,237,0.06), rgba(0,230,255,0.03));
@@ -27,7 +26,6 @@ header.app-header{
 .hero p{margin:0;font-size:12px;color:var(--muted)}
 .model-tag{font-size:12px;color:var(--muted)}
 
-/* settings modal */
 .guide-panel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .2s ease}
 .guide-card{background:linear-gradient(180deg,#061225,#071830);border-radius:12px;padding:18px;width:92%;max-width:520px;box-shadow:0 40px 120px rgba(2,6,23,0.7);transform:translateY(-16px);transition:all .25s ease}
 .guide-panel.open{opacity:1;pointer-events:auto}
@@ -39,7 +37,6 @@ header.app-header{
 .btn.primary{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#041022}
 .small-muted{font-size:13px;color:var(--muted);margin-top:8px}
 
-/* chat */
 .chat-area{flex:1;display:flex;flex-direction:column;min-height:0}
 .chat-card{flex:1;margin:8px;background:linear-gradient(180deg,var(--panel),#041026);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,0.7)}
 .messages{
@@ -49,15 +46,13 @@ header.app-header{
 .bubble.ai{align-self:flex-start;background:linear-gradient(90deg,#071427,#0b1a2f)}
 .bubble.user{align-self:flex-end;background:linear-gradient(90deg,#5b21b6,#00e6ff);color:#001022}
 .bubble img{max-width:70vw;border-radius:10px;margin-top:8px;display:block}
-
-/* composer */
+  
 .composer{display:flex;gap:8px;padding:10px;align-items:center;border-top:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);position:sticky;bottom:0;backdrop-filter: blur(8px);padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
 .text-input{flex:1;min-height:44px;max-height:160px;border-radius:999px;padding:12px 16px;border:none;background:var(--glass);color:inherit;font-size:16px;outline:none;resize:none}
 .icon-btn{background:transparent;border:none;color:var(--accent2);font-size:22px;padding:10px;border-radius:10px;cursor:pointer}
 .icon-btn:active{transform:scale(.96)}
 .float-settings{position:fixed;right:12px;bottom:86px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:999px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);z-index:50}
-
-/* typing */
+  
 .typing{display:inline-flex;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);opacity:.35;animation:dot 1s infinite}
 .dot:nth-child(2){animation-delay:.12s}.dot:nth-child(3){animation-delay:.24s}
@@ -79,7 +74,6 @@ header.app-header{
     <div class="model-tag">gpt-4o-mini</div>
   </header>
 
-  <!-- Settings modal -->
   <div class="guide-panel" id="guidePanel" aria-hidden="true">
     <div class="guide-card" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
       <h2 id="guideTitle">Setup your OpenRouter API key</h2>
@@ -101,20 +95,28 @@ header.app-header{
     </div>
   </div>
 
-  <!-- Chat -->
   <div class="chat-area">
     <div class="chat-card">
       <div class="messages" id="messages" role="log" aria-live="polite"></div>
 
-      <div class="composer">
-        <textarea id="textInput" class="text-input" placeholder="Ask something or attach an image..." rows="1"></textarea>
-        <button id="attachBtn" class="icon-btn" title="Attach image (camera)">📷</button>
-        <button id="sendBtn" class="icon-btn" title="Send (rocket)">
-          <!-- rocket icon (SVG) -->
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-5 20 5-8 8-5-8-7z"/></svg>
-        </button>
-        <input id="fileInput" type="file" accept="image/*" style="display:none" />
-      </div>
+       <div class="composer">
+  <textarea id="textInput" class="text-input" placeholder="Ask something or attach an image..." rows="1"></textarea>
+
+  <button id="attachBtn" class="icon-btn" title="Attach image">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.2-9.19a3 3 0 0 1 4.24 4.24l-7.07 7.07a1 1 0 0 1-1.41-1.41l6.36-6.36"/>
+    </svg>
+  </button>
+
+  <button id="sendBtn" class="icon-btn" title="Send">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"></line>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+    </svg>
+  </button>
+
+  <input id="fileInput" type="file" accept="image/*" style="display:none" />
+</div>
     </div>
   </div>
 
@@ -122,7 +124,6 @@ header.app-header{
 </div>
 
 <script>
-/* --- NeonAri — OpenRouter (gpt-4o-mini) with prompt-before-image --- */
 const PROXY = ""; 
 const guidePanel = document.getElementById('guidePanel');
 const openGuideBtn = document.getElementById('openGuideBtn');
@@ -136,11 +137,10 @@ const textInput = document.getElementById('textInput');
 const attachBtn = document.getElementById('attachBtn');
 const sendBtn = document.getElementById('sendBtn');
 const fileInput = document.getElementById('fileInput');
-let API_KEY = localStorage.getItem('neonari_key') || "";
+let API_KEY = localStorage.getItem('arigato_key') || "";
 let pendingImage = null;
 let lastScrollTop = 0;
 
-/* Settings modal */
 function openGuide(){ guidePanel.classList.add('open'); guidePanel.setAttribute('aria-hidden','false'); if(API_KEY) apiInput.value='••••••••••'; apiInput.focus(); }
 function closeGuidePanel(){ guidePanel.classList.remove('open'); guidePanel.setAttribute('aria-hidden','true'); }
 openGuideBtn.addEventListener('click', openGuide);
@@ -154,16 +154,15 @@ saveKeyBtn.addEventListener('click', ()=>{
   if(!raw){ setKeyStatus('Paste your key first.', false); return; }
   if(!raw.startsWith('sk-or-')){ setKeyStatus('Key must start with sk-or-', false); return; }
   API_KEY = raw;
-  localStorage.setItem('neonari_key', API_KEY);
+  localStorage.setItem('arigato_key', API_KEY);
   apiInput.value = '••••••••••';
   setKeyStatus('✅ Key saved locally.');
 });
 
 clearKeyBtn.addEventListener('click', ()=>{
-  localStorage.removeItem('neonari_key'); API_KEY = ''; apiInput.value = ''; setKeyStatus('Key removed.', false);
+  localStorage.removeItem('arigato_key'); API_KEY = ''; apiInput.value = ''; setKeyStatus('Key removed.', false);
 });
 
-/* scroll, typing, ui helpers */
 messagesEl.addEventListener('scroll', ()=>{
   const st = messagesEl.scrollTop;
   const appHeader = document.getElementById('appHeader');
@@ -182,13 +181,11 @@ function addImagePreview(dataUrl){const d=document.createElement('div');d.classN
 function addAIBubbleTyping(){const d=document.createElement('div');d.className='bubble ai';d.dataset.typing='1';d.innerHTML='<span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';messagesEl.appendChild(d);smartScroll();}
 function replaceTypingWithText(text){for(let i=messagesEl.children.length-1;i>=0;i--){const ch=messagesEl.children[i];if(ch.dataset&&ch.dataset.typing==='1'){ch.className='bubble ai';ch.removeAttribute('data-typing');ch.textContent=text;smartScroll();return;}}const d=document.createElement('div');d.className='bubble ai';d.textContent=text;messagesEl.appendChild(d);smartScroll();}
 
-/* Attach flow — with user prompt before sending */
 attachBtn.addEventListener('click', ()=> fileInput.click());
 fileInput.addEventListener('change', async (e)=>{
   const f=e.target.files&&e.target.files[0]; if(!f) return;
   const dataUrl=await fileToDataURL(f);
-  // ask user for prompt before sending
-  const userPrompt = prompt("Enter a question or prompt about this image:");
+  const userPrompt = prompt("Enter a question");
   if(!userPrompt) return alert("Image upload canceled — no prompt entered.");
   addUserBubble(userPrompt);
   addImagePreview(dataUrl);
@@ -197,7 +194,6 @@ fileInput.addEventListener('change', async (e)=>{
   pendingImage=null;
 });
 
-/* Send flow */
 sendBtn.addEventListener('click', async ()=>{
   const text=textInput.value.trim(); if(!text) return;
   addUserBubble(text); textInput.value=''; textInput.style.height='auto';
