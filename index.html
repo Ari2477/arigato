@@ -551,9 +551,10 @@ window.addEventListener("load", () => {
       const bubble = document.createElement("div");
       bubble.className = "bubble " + msg.role;
       bubble.innerHTML = `
-        <div class="msg-text">${msg.text}</div>
-        <div class="msg-time">${formatTimestamp(msg.time || Date.now())}</div>
-      `;
+  <div class="msg-text">${msg.text}</div>
+  <hr style="border: none; border-top: 1px dashed rgba(0,0,0,0.2); margin: 6px 0;" />
+  <div class="msg-time">${formatTimestamp(msg.time || Date.now())}</div>
+`;
       messagesEl.appendChild(bubble);
     }
 
