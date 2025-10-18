@@ -37,47 +37,75 @@ html, body {
   align-items: stretch;
 }
 
-header.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+.app-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(4px);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
-  transition: transform .26s ease, opacity .26s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--paper);
+  border-bottom: 2px dashed rgba(0,0,0,0.15);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  border-radius: 0 0 16px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: background 0.3s ease, transform 0.25s ease;
 }
 
 .avatar {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff9f0;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  background: #fffdf7;
+  border: 2px solid rgba(0,0,0,0.1);
+  box-shadow: 2px 2px 0 #cbbca3;
+  transition: transform 0.2s ease;
+}
+
+.avatar:hover {
+  transform: rotate(-4deg) scale(1.05);
 }
 
 .hero h1 {
   margin: 0;
-  font-size: 20px;
-  color: var(--ink);
+  font-size: 28px;
+  font-family: "Patrick Hand", cursive;
+  color: var(--accent2);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+  letter-spacing: 0.5px;
 }
 
 .hero p {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
+  font-family: "Comic Neue", sans-serif;
 }
 
 .model-tag {
-  font-size: 13px;
-  color: var(--muted);
+  margin-left: auto;
+  background: #fff9ec;
+  color: var(--ink);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 14px;
+  border: 2px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  box-shadow: 2px 2px 0 #d7cbb1;
+  transition: all 0.2s ease-in-out;
+}
+
+.model-tag:hover {
+  background: #fff3db;
+  transform: rotate(-3deg);
+}
+
+.app-header.hidden {
+  transform: translateY(-110%);
+  opacity: 0;
 }
 
 .guide-panel {
@@ -330,7 +358,19 @@ header.app-header {
 <div class="app">
   <header class="app-header" id="appHeader">
     <div class="avatar" aria-hidden="true">
-      <svg width="48" height="48" viewBox="0 0 120 120"><defs><linearGradient id="ng" x1="0" x2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#00e6ff"/></linearGradient></defs><rect x="6" y="6" width="108" height="108" rx="18" fill="url(#ng)"/><circle cx="60" cy="44" r="18" fill="#061026"/></svg>
+      <svg width="48" height="48" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="6" width="108" height="108" rx="18" fill="#f5eedd" stroke="#cbbca3" stroke-width="3"/>
+  
+  <rect x="30" y="35" width="60" height="45" rx="10" fill="#fffaf1" stroke="#3b2f2f" stroke-width="3"/>
+  
+  <circle cx="48" cy="58" r="6" fill="#3b2f2f"/>
+  <circle cx="72" cy="58" r="6" fill="#3b2f2f"/>
+  
+  <rect x="48" y="70" width="24" height="4" rx="2" fill="#3b2f2f"/>
+  
+  <line x1="60" y1="30" x2="60" y2="20" stroke="#3b2f2f" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="60" cy="16" r="3" fill="#3b2f2f"/>
+</svg>
     </div>
     <div class="hero">
       <h1>Arigato</h1>
