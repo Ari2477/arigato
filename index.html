@@ -242,14 +242,13 @@ html, body {
 }
 
 .bubble {
+  display: inline-block;
   max-width: 80%;
+  min-width: 150px; 
+  word-wrap: break-word;
   padding: 10px 14px;
-  border-radius: 14px;
-  line-height: 1.45;
-  font-size: 16px;
-  box-shadow: 1px 1px 0 rgba(0,0,0,0.2);
-  font-family: "Patrick Hand", "Comic Neue", sans-serif;
-  transition: transform 0.2s ease;
+  border-radius: 15px;
+  margin: 8px 0;
 }
 
 .bubble.ai {
@@ -351,6 +350,43 @@ html, body {
   .bubble{font-size:17px;padding:12px}
   .text-input{font-size:17px}
 }
+
+.bubble {
+  position: relative;
+  padding-bottom: 18px;
+}
+
+.msg-text {
+  white-space: pre-wrap;
+}
+
+.msg-time {
+  font-size: 0.7em;
+  opacity: 0.6;
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  font-family: "Courier New", monospace;
+}
+
+.message {
+  position: relative;
+  display: inline-block;
+  max-width: 80%;
+  word-wrap: break-word;
+  margin: 8px 0;
+}
+
+.timestamp {
+  display: block;
+  font-size: 0.75rem;
+  color: #7b7b7b;
+  margin-top: 4px;
+  text-align: right;
+  white-space: nowrap;
+  line-height: 1;
+}
+
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -530,6 +566,132 @@ async function sendToOpenRouter(text="",imageData=null){
   }catch(err){console.error(err);replaceTypingWithText("⚠️ Request failed: "+(err.message||err));}
 }
 window.addEventListener('load',()=>setTimeout(()=>textInput.focus(),200));
+
+let chatHistory = JSON.parse(localStorage.getItem("arigato_chat_history") || "[]");
+let memorySummary = localStorage.getItem("arigato_memory_summary") || "";
+
+function formatTimestamp(ts) {
+  const date = new Date(ts);
+  return date.toLocaleString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    month: "short",
+    day: "numeric",
+  });
+}
+
+window.addEventListener("load", () => {
+  if (chatHistory.length > 0) {
+    for (const msg of chatHistory) {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + msg.role;
+      bubble.innerHTML = `
+        <div class="msg-text">${msg.text}</div>
+        <div class="msg-time">${formatTimestamp(msg.time || Date.now())}</div>
+      `;
+      messagesEl.appendChild(bubble);
+    }
+
+    const note = document.createElement("div");
+    note.className = "bubble ai";
+    note.textContent = memorySummary
+      ? "🧠 Memory successfully loaded."
+      : "💬 Previous chat restored.";
+    messagesEl.appendChild(note);
+    smartScroll();
+  }
+});
+
+function saveMessage(role, text) {
+  const msg = { role, text, time: Date.now() };
+  chatHistory.push(msg);
+
+  if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
+
+  localStorage.setItem("arigato_chat_history", JSON.stringify(chatHistory));
+}
+
+const originalAddUserBubble = addUserBubble;
+addUserBubble = function (text) {
+  originalAddUserBubble(text);
+  saveMessage("user", text);
+};
+
+const originalReplaceTypingWithText = replaceTypingWithText;
+replaceTypingWithText = function (text) {
+  originalReplaceTypingWithText(text);
+  saveMessage("ai", text);
+  checkAndSummarizeMemory();
+};
+
+async function checkAndSummarizeMemory() {
+  if (!API_KEY) return;
+  if (chatHistory.length < 20) return;
+
+  if (memorySummary === "") {
+    const summaryPrompt = `
+Summarize this conversation concisely in English to preserve important context and topics.
+Include details about user's preferences, tone, and goals.
+Conversation data: ${JSON.stringify(chatHistory.slice(-25))}
+`;
+
+    try {
+      const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: summaryPrompt }]
+        })
+      });
+
+      const data = await resp.json();
+      const summaryText = data?.choices?.[0]?.message?.content?.[0]?.text?.trim() || "";
+
+      if (summaryText) {
+        memorySummary = summaryText;
+        localStorage.setItem("arigato_memory_summary", memorySummary);
+
+        const note = document.createElement("div");
+        note.className = "bubble ai";
+        note.textContent = "🧠 Conversation summarized and saved.";
+        messagesEl.appendChild(note);
+        smartScroll();
+      }
+    } catch (err) {
+      console.warn("⚠️ Memory summarization failed:", err);
+    }
+  }
+}
+
+function buildOpenRouterMessages(text, imageData) {
+  const content = [];
+  if (text) content.push({ type: "text", text });
+  if (imageData) content.push({ type: "image_url", image_url: imageData });
+
+  const recentMessages = chatHistory.slice(-12).map(msg => ({
+    role: msg.role === "ai" ? "assistant" : "user",
+    content: [
+      { type: "text", text: `[${formatTimestamp(msg.time)}] ${msg.text}` }
+    ]
+  }));
+
+  const messages = [];
+
+  if (memorySummary) {
+    messages.push({
+      role: "system",
+      content: [{ type: "text", text: `Previous conversation summary: ${memorySummary}` }]
+    });
+  }
+
+  messages.push(...recentMessages, { role: "user", content });
+  return messages;
+}
 </script>
 </body>
 </html>
