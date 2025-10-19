@@ -429,7 +429,7 @@ html, body {
 </div>
 
 <script>
-const PROXY = ""; 
+const PROXY = "";
 const guidePanel = document.getElementById('guidePanel');
 const openGuideBtn = document.getElementById('openGuideBtn');
 const closeGuide = document.getElementById('closeGuide');
@@ -442,246 +442,166 @@ const textInput = document.getElementById('textInput');
 const attachBtn = document.getElementById('attachBtn');
 const sendBtn = document.getElementById('sendBtn');
 const fileInput = document.getElementById('fileInput');
+
 let API_KEY = localStorage.getItem('arigato_key') || "";
-let pendingImage = null;
 let lastScrollTop = 0;
+
+let chatHistory = [];
+let memorySummary = JSON.parse(localStorage.getItem("arigato_memory_summary") || "{}");
+let userProfile = memorySummary.userProfile || {};
+
+function formatTimestamp(ts){
+  const date = new Date(ts);
+  return date.toLocaleString("en-US", {hour:"2-digit",minute:"2-digit",hour12:true,month:"short",day:"numeric"});
+}
+function isNearBottom(){ const el=messagesEl; return (el.scrollHeight-el.scrollTop-el.clientHeight)<140; }
+function smartScroll(){ if(isNearBottom()) requestAnimationFrame(()=>messagesEl.scrollTo({top:messagesEl.scrollHeight,behavior:'smooth'})); }
+function fileToDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file);});}
 
 function openGuide(){ guidePanel.classList.add('open'); guidePanel.setAttribute('aria-hidden','false'); if(API_KEY) apiInput.value='••••••••••'; apiInput.focus(); }
 function closeGuidePanel(){ guidePanel.classList.remove('open'); guidePanel.setAttribute('aria-hidden','true'); }
 openGuideBtn.addEventListener('click', openGuide);
 closeGuide.addEventListener('click', closeGuidePanel);
-
+function setKeyStatus(txt,ok=true){ keyStatus.textContent=txt; keyStatus.style.color=ok?'lightgreen':'#ff9aa2'; }
 if(API_KEY) setKeyStatus('Key loaded (hidden).'); else setKeyStatus('No key saved.');
-function setKeyStatus(txt, ok=true){ keyStatus.textContent = txt; keyStatus.style.color = ok ? 'lightgreen' : '#ff9aa2'; }
 
 saveKeyBtn.addEventListener('click', ()=>{
-  const raw = apiInput.value.trim();
-  if(!raw){ setKeyStatus('Paste your key first.', false); return; }
-  if(!raw.startsWith('sk-or-')){ setKeyStatus('Key must start with sk-or-', false); return; }
-  API_KEY = raw;
-  localStorage.setItem('arigato_key', API_KEY);
-  apiInput.value = '••••••••••';
-  setKeyStatus('✅ Key saved locally.');
+  const raw=apiInput.value.trim(); 
+  if(!raw){ setKeyStatus('Paste your key first.',false); return; }
+  if(!raw.startsWith('sk-or-')){ setKeyStatus('Key must start with sk-or-',false); return; }
+  API_KEY=raw; localStorage.setItem('arigato_key',API_KEY); apiInput.value='••••••••••'; setKeyStatus('✅ Key saved locally.');
 });
+clearKeyBtn.addEventListener('click', ()=>{localStorage.removeItem('arigato_key'); API_KEY=''; apiInput.value=''; setKeyStatus('Key removed.',false);});
 
-clearKeyBtn.addEventListener('click', ()=>{
-  localStorage.removeItem('arigato_key'); API_KEY = ''; apiInput.value = ''; setKeyStatus('Key removed.', false);
-});
-
-messagesEl.addEventListener('scroll', ()=>{
-  const st = messagesEl.scrollTop;
-  const appHeader = document.getElementById('appHeader');
-  if(appHeader){
-    if(st > lastScrollTop + 12){ appHeader.style.transform = 'translateY(-110%)'; appHeader.style.opacity = '0'; }
-    else if(st < lastScrollTop - 12){ appHeader.style.transform = ''; appHeader.style.opacity = ''; }
-  }
-  lastScrollTop = st <= 0 ? 0 : st;
-});
-
-textInput.addEventListener('input', ()=>{ textInput.style.height='auto'; textInput.style.height=Math.min(textInput.scrollHeight,160)+'px'; });
-function isNearBottom(){const el=messagesEl;return (el.scrollHeight-el.scrollTop-el.clientHeight)<140;}
-function smartScroll(){if(isNearBottom())requestAnimationFrame(()=>messagesEl.scrollTo({top:messagesEl.scrollHeight,behavior:'smooth'}));}
-function addUserBubble(text){const d=document.createElement('div');d.className='bubble user';d.textContent=text;messagesEl.appendChild(d);smartScroll();}
-function addImagePreview(dataUrl){const d=document.createElement('div');d.className='bubble user';d.textContent='📷 Image attached';const img=document.createElement('img');img.src=dataUrl;img.alt='attached image';d.appendChild(img);messagesEl.appendChild(d);smartScroll();}
-function addAIBubbleTyping(){const d=document.createElement('div');d.className='bubble ai';d.dataset.typing='1';d.innerHTML='<span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';messagesEl.appendChild(d);smartScroll();}
-function replaceTypingWithText(text){for(let i=messagesEl.children.length-1;i>=0;i--){const ch=messagesEl.children[i];if(ch.dataset&&ch.dataset.typing==='1'){ch.className='bubble ai';ch.removeAttribute('data-typing');ch.textContent=text;smartScroll();return;}}const d=document.createElement('div');d.className='bubble ai';d.textContent=text;messagesEl.appendChild(d);smartScroll();}
-
-attachBtn.addEventListener('click', ()=> fileInput.click());
-fileInput.addEventListener('change', async (e)=>{
-  const f=e.target.files&&e.target.files[0]; if(!f) return;
-  const dataUrl=await fileToDataURL(f);
-  const userPrompt = prompt("Enter a question");
-  if(!userPrompt) return alert("Image upload canceled — no prompt entered.");
-  addUserBubble(userPrompt);
-  addImagePreview(dataUrl);
-  addAIBubbleTyping();
-  await sendToOpenRouter(userPrompt, dataUrl);
-  pendingImage=null;
-});
-
-sendBtn.addEventListener('click', async ()=>{
-  const text=textInput.value.trim(); if(!text) return;
-  addUserBubble(text); textInput.value=''; textInput.style.height='auto';
-  addAIBubbleTyping(); await sendToOpenRouter(text, null);
-});
-textInput.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendBtn.click();}});
-
-function fileToDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
-function buildOpenRouterMessages(text,imageData){const content=[];if(text)content.push({type:"text",text});if(imageData)content.push({type:"image_url",image_url:imageData});return[{role:"user",content}];}
-
-async function sendToOpenRouter(text="",imageData=null){
-  if(!API_KEY){replaceTypingWithText("⚠️ Please save your OpenRouter API key in Settings first.");return;}
-  try{
-    const messages=buildOpenRouterMessages(text,imageData);
-    const body={model:"gpt-4o-mini",messages};
-    const url=(PROXY||"")+"https://openrouter.ai/api/v1/chat/completions";
-    const resp=await fetch(url,{method:"POST",headers:{"Authorization":`Bearer ${API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
-    const data=await resp.json();
-    if(!resp.ok){console.error("OpenRouter error:",resp.status,data);replaceTypingWithText(`⚠️ API error ${resp.status}: ${data.error?.message||JSON.stringify(data).slice(0,200)}`);return;}
-    let answer="";const choice=data.choices?.[0];
-    if(choice?.message?.content){
-      const c=choice.message.content;
-      if(Array.isArray(c))for(const p of c){if(p.type==='text'&&p.text)answer+=p.text;}
-      else if(typeof c==='string')answer=c;
-      else if(c.text)answer=c.text;
-    }
-    if(!answer)answer="(no reply)";
-    replaceTypingWithText(answer);
-  }catch(err){console.error(err);replaceTypingWithText("⚠️ Request failed: "+(err.message||err));}
+function clearMemory(){
+  memorySummary={};
+  chatHistory=[];
+  userProfile={};
+  localStorage.removeItem("arigato_memory_summary");
+  messagesEl.innerHTML="";
+  const note=document.createElement("div"); note.className="bubble ai"; note.textContent="🧠 Memory cleared. Starting fresh chat."; messagesEl.appendChild(note); smartScroll();
 }
-window.addEventListener('load',()=>setTimeout(()=>textInput.focus(),200));
 
-let chatHistory = JSON.parse(localStorage.getItem("arigato_chat_history") || "[]");
-let memorySummary = localStorage.getItem("arigato_memory_summary") || "";
+function saveMessage(role,text){
+  chatHistory.push({role,text,time:Date.now()});
+  if(chatHistory.length>50) chatHistory=chatHistory.slice(-50);
+  localStorage.setItem("arigato_memory_summary", JSON.stringify({userProfile, chatHistory}));
+}
 
-function formatTimestamp(ts) {
-  const date = new Date(ts);
-  return date.toLocaleString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-    month: "short",
-    day: "numeric",
+function addUserBubble(text){
+  const d=document.createElement('div'); d.className='bubble user';
+  d.innerHTML=`<div class="msg-text">${text}</div><hr style="border:none;border-top:1px dashed rgba(0,0,0,0.2);margin:6px 0;" /><div class="msg-time">${formatTimestamp(Date.now())}</div>`;
+  messagesEl.appendChild(d); smartScroll();
+  saveMessage("user",text); updateUserProfileFromMessage(text);
+}
+
+function addAIBubbleTyping(){
+  const d=document.createElement('div'); d.className='bubble ai'; d.dataset.typing='1';
+  d.innerHTML='<span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+  messagesEl.appendChild(d); smartScroll();
+}
+
+function replaceTypingWithText(text){
+  for(let i=messagesEl.children.length-1;i>=0;i--){
+    const ch=messagesEl.children[i];
+    if(ch.dataset && ch.dataset.typing==='1'){
+      ch.className='bubble ai'; ch.removeAttribute('data-typing');
+      ch.innerHTML=`<div class="msg-text">${text}</div><hr style="border:none;border-top:1px dashed rgba(0,0,0,0.2);margin:6px 0;" /><div class="msg-time">${formatTimestamp(Date.now())}</div>`;
+      smartScroll(); saveMessage("ai",text); return;
+    }
+  }
+  const d=document.createElement('div'); d.className='bubble ai';
+  d.innerHTML=`<div class="msg-text">${text}</div><hr style="border:none;border-top:1px dashed rgba(0,0,0,0.2);margin:6px 0;" /><div class="msg-time">${formatTimestamp(Date.now())}</div>`;
+  messagesEl.appendChild(d); smartScroll(); saveMessage("ai",text);
+}
+
+function updateUserProfileFromMessage(text){
+  const nameMatch=text.match(/i am (\w+)/i); if(nameMatch) userProfile.name=nameMatch[1];
+  const roleMatch=text.match(/i am your (.+)/i); if(roleMatch) userProfile.role=roleMatch[1];
+}
+
+function shouldUseEmoji(userText){
+  const seriousPatterns = /\?|what|when|where|who|how|why/i;
+  return !seriousPatterns.test(userText);
+}
+
+function buildOpenRouterMessages(text,imageData){
+  const content=[]; if(text) content.push({type:"text",text}); if(imageData) content.push({type:"image_url",image_url:imageData});
+  const recentMessages = chatHistory.slice(-12).map(msg=>({role: msg.role==="ai"?"assistant":"user", content:[{type:"text", text:`[${formatTimestamp(msg.time)}] ${msg.text}` }]}));
+  const messages=[];
+  messages.push({
+    role:"system",
+    content:[{type:"text",text:`You are Arigato, a playful assistant. Remember user's name & role. Respond casually to friendly messages with emojis. Do NOT use emojis for serious questions.`}]
   });
-}
-
-window.addEventListener("load", () => {
-  if (chatHistory.length > 0) {
-    for (const msg of chatHistory) {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble " + msg.role;
-      bubble.innerHTML = `
-  <div class="msg-text">${msg.text}</div>
-  <hr style="border: none; border-top: 1px dashed rgba(0,0,0,0.2); margin: 6px 0;" />
-  <div class="msg-time">${formatTimestamp(msg.time || Date.now())}</div>
-`;
-      messagesEl.appendChild(bubble);
-    }
-
-    const note = document.createElement("div");
-    note.className = "bubble ai";
-    note.textContent = memorySummary
-      ? "🧠 Memory successfully loaded."
-      : "💬 Previous chat restored.";
-    messagesEl.appendChild(note);
-    smartScroll();
-  }
-});
-
-function saveMessage(role, text) {
-  const msg = { role, text, time: Date.now() };
-  chatHistory.push(msg);
-
-  if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
-
-  localStorage.setItem("arigato_chat_history", JSON.stringify(chatHistory));
-}
-
-const originalAddUserBubble = addUserBubble;
-addUserBubble = function (text) {
-  originalAddUserBubble(text);
-  saveMessage("user", text);
-};
-
-replaceTypingWithText = function (text) {
-  for (let i = messagesEl.children.length - 1; i >= 0; i--) {
-    const ch = messagesEl.children[i];
-    if (ch.dataset && ch.dataset.typing === '1') {
-      ch.className = 'bubble ai';
-      ch.removeAttribute('data-typing');
-
-      ch.innerHTML = `
-        <div class="msg-text">${text}</div>
-        <hr style="border: none; border-top: 1px dashed rgba(0,0,0,0.2); margin: 6px 0;" />
-        <div class="msg-time">${formatTimestamp(Date.now())}</div>
-      `;
-      smartScroll();
-      saveMessage("ai", text);
-      checkAndSummarizeMemory();
-      return;
-    }
-  }
-
-  const d = document.createElement('div');
-  d.className = 'bubble ai';
-  d.innerHTML = `
-    <div class="msg-text">${text}</div>
-    <hr style="border: none; border-top: 1px dashed rgba(0,0,0,0.2); margin: 6px 0;" />
-    <div class="msg-time">${formatTimestamp(Date.now())}</div>
-  `;
-  messagesEl.appendChild(d);
-  smartScroll();
-  saveMessage("ai", text);
-  checkAndSummarizeMemory();
-};
-
-async function checkAndSummarizeMemory() {
-  if (!API_KEY) return;
-  if (chatHistory.length < 20) return;
-
-  if (memorySummary === "") {
-    const summaryPrompt = `
-Summarize this conversation concisely in English to preserve important context and topics.
-Include details about user's preferences, tone, and goals.
-Conversation data: ${JSON.stringify(chatHistory.slice(-25))}
-`;
-
-    try {
-      const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: summaryPrompt }]
-        })
-      });
-
-      const data = await resp.json();
-      const summaryText = data?.choices?.[0]?.message?.content?.[0]?.text?.trim() || "";
-
-      if (summaryText) {
-        memorySummary = summaryText;
-        localStorage.setItem("arigato_memory_summary", memorySummary);
-
-        const note = document.createElement("div");
-        note.className = "bubble ai";
-        note.textContent = "🧠 Conversation summarized and saved.";
-        messagesEl.appendChild(note);
-        smartScroll();
-      }
-    } catch (err) {
-      console.warn("⚠️ Memory summarization failed:", err);
-    }
-  }
-}
-
-function buildOpenRouterMessages(text, imageData) {
-  const content = [];
-  if (text) content.push({ type: "text", text });
-  if (imageData) content.push({ type: "image_url", image_url: imageData });
-
-  const recentMessages = chatHistory.slice(-12).map(msg => ({
-    role: msg.role === "ai" ? "assistant" : "user",
-    content: [
-      { type: "text", text: `[${formatTimestamp(msg.time)}] ${msg.text}` }
-    ]
-  }));
-
-  const messages = [];
-
-  if (memorySummary) {
-    messages.push({
-      role: "system",
-      content: [{ type: "text", text: `Previous conversation summary: ${memorySummary}` }]
-    });
-  }
-
-  messages.push(...recentMessages, { role: "user", content });
+  if(memorySummary.chatHistory) messages.push(...recentMessages);
+  messages.push({role:"user", content});
+  messages.emojiAllowed = shouldUseEmoji(text);
   return messages;
 }
+
+async function sendToOpenRouter(text="", imageData=null){
+  if(!API_KEY){replaceTypingWithText("⚠️ Please save your OpenRouter API key first."); return;}
+  try{
+    const messages=buildOpenRouterMessages(text,imageData);
+    const resp=await fetch((PROXY||"")+"https://openrouter.ai/api/v1/chat/completions", {method:"POST", headers:{"Authorization":`Bearer ${API_KEY}`,"Content-Type":"application/json"}, body:JSON.stringify({model:"gpt-4o-mini",messages})});
+    const data=await resp.json(); if(!resp.ok){replaceTypingWithText("⚠️ API error"); return;}
+    let answer=""; const choice=data.choices?.[0];
+    if(choice?.message?.content){ const c=choice.message.content; if(Array.isArray(c)) c.forEach(p=>{if(p.type==="text"&&p.text) answer+=p.text;}); else if(typeof c==="string") answer=c; else if(c.text) answer=c.text;}
+    if(!answer) answer="(no reply)";
+
+    if(userProfile.name && /who am i/i.test(text)) answer=`You're my ${userProfile.role||'special user'} 😏`;
+
+    if(messages.emojiAllowed && !/who am i|what|how|why/i.test(text)) answer += " 😏";
+
+    replaceTypingWithText(answer);
+  } catch(err){replaceTypingWithText("⚠️ Request failed: "+(err.message||err));}
+}
+
+attachBtn.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', async(e)=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const dataUrl = await fileToDataURL(f);
+  const userPrompt = prompt("Enter a question/comment for this image:");
+  if(!userPrompt) return alert("Upload canceled — no prompt entered.");
+
+  addUserBubble(userPrompt);
+
+  const d = document.createElement('div');
+  d.className = 'bubble user';
+  d.textContent = '📷 Image attached';
+  const img = document.createElement('img');
+  img.src = dataUrl; img.alt = 'attached image';
+  d.appendChild(img); messagesEl.appendChild(d); smartScroll();
+
+  addAIBubbleTyping();
+  await sendToOpenRouter(userPrompt, dataUrl);
+});
+
+sendBtn.addEventListener('click', async()=>{
+  const text=textInput.value.trim(); if(!text) return; addUserBubble(text); textInput.value=''; textInput.style.height='auto'; addAIBubbleTyping(); await sendToOpenRouter(text,null);
+});
+textInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendBtn.click();}});
+textInput.addEventListener('input',()=>{textInput.style.height='auto'; textInput.style.height=Math.min(textInput.scrollHeight,160)+'px';});
+
+messagesEl.addEventListener('scroll', ()=>{
+  const st=messagesEl.scrollTop;
+  const appHeader=document.getElementById('appHeader');
+  if(appHeader){
+    if(st>lastScrollTop+12){ appHeader.style.transform='translateY(-110%)'; appHeader.style.opacity='0'; }
+    else if(st<lastScrollTop-12){ appHeader.style.transform=''; appHeader.style.opacity=''; }
+  }
+  lastScrollTop = st<=0?0:st;
+});
+
+window.addEventListener('load', ()=>{
+  messagesEl.innerHTML="";
+  const note=document.createElement("div"); note.className="bubble ai";
+  if(userProfile.name) note.textContent=`🧠 I remember you, ${userProfile.name}!`; 
+  else note.textContent="💬 Start a new chat session.";
+  messagesEl.appendChild(note); smartScroll();
+  setTimeout(()=>textInput.focus(),200);
+  chatHistory=[];
+});
 </script>
 </body>
 </html>
