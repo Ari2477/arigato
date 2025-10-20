@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -405,7 +405,7 @@ html, body {
       <div class="messages" id="messages" role="log" aria-live="polite"></div>
 
        <div class="composer">
-  <textarea id="textInput" class="text-input" placeholder="Ask something or attach an image..." rows="1"></textarea>
+  <textarea id="textInput" class="text-input" placeholder="Ask something..." rows="1"></textarea>
 
   <button id="attachBtn" class="icon-btn" title="Attach image">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -561,7 +561,7 @@ attachBtn.addEventListener('click', ()=>fileInput.click());
 fileInput.addEventListener('change', async(e)=>{
   const f = e.target.files && e.target.files[0]; if(!f) return;
   const dataUrl = await fileToDataURL(f);
-  const userPrompt = prompt("Enter a question/comment for this image:");
+  const userPrompt = prompt("Enter a prompt for this image:");
   if(!userPrompt) return alert("Upload canceled — no prompt entered.");
 
   addUserBubble(userPrompt);
